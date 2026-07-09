@@ -1,0 +1,17 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v4.6.2
+_src_path: https://github.com/jupyterlab/extension-template
+advanced: false
+author_email: me@joseph-long.com
+author_name: Joseph D. Long
+has_ai_rules: false
+has_binder: false
+has_settings: false
+kind: frontend
+labextension_name: jupyterlab_ext_pathbar
+project_short_description: Extension to JupyterLab that displays the path to a document
+    above the content editor/viewer.
+python_name: jupyterlab_ext_pathbar
+repository: https://github.com/joseph-long/jupyterlab_ext_pathbar
+test: true
+

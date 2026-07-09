@@ -3,3 +3,16 @@
 
     https://jupyterlab.readthedocs.io/en/stable/developer/css.html
 */
+
+.jp-PathBar {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+  background: var(--jp-layout-color1);
+  border-bottom: 1px solid var(--jp-border-color2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+

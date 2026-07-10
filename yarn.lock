@@ -2214,7 +2214,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlab/apputils@npm:^4.7.1":
+"@jupyterlab/apputils@npm:^4.0.0, @jupyterlab/apputils@npm:^4.7.1":
   version: 4.7.1
   resolution: "@jupyterlab/apputils@npm:4.7.1"
   dependencies:
@@ -2366,7 +2366,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlab/coreutils@npm:^6.6.1":
+"@jupyterlab/coreutils@npm:^6.0.0, @jupyterlab/coreutils@npm:^6.6.1":
   version: 6.6.1
   resolution: "@jupyterlab/coreutils@npm:6.6.1"
   dependencies:
@@ -2787,7 +2787,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlab/ui-components@npm:^4.6.1":
+"@jupyterlab/ui-components@npm:^4.0.0, @jupyterlab/ui-components@npm:^4.6.1":
   version: 4.6.1
   resolution: "@jupyterlab/ui-components@npm:4.6.1"
   dependencies:
@@ -7609,8 +7609,11 @@ __metadata:
     "@jupyter/builder": ^1.0.0
     "@jupyter/eslint-plugin": ^0.0.5
     "@jupyterlab/application": ^4.0.0
+    "@jupyterlab/apputils": ^4.0.0
+    "@jupyterlab/coreutils": ^6.0.0
     "@jupyterlab/docregistry": ^4.0.0
     "@jupyterlab/testutils": ^4.0.0
+    "@jupyterlab/ui-components": ^4.0.0
     "@lumino/disposable": ^2.0.0
     "@lumino/widgets": ^2.0.0
     "@types/jest": ^29.2.0

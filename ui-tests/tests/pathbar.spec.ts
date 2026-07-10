@@ -14,6 +14,9 @@ import { expect, IJupyterLabPageFixture, test } from '@jupyterlab/galata';
  */
 
 const BAR = '.jp-jupyterlab-ext-pathbar-bar';
+const PATH = '.jp-jupyterlab-ext-pathbar-path';
+const PREFIX = '.jp-jupyterlab-ext-pathbar-prefix';
+const COPY = '.jp-jupyterlab-ext-pathbar-button';
 
 const NOTEBOOK_CONTENT = JSON.stringify({
   cells: [
@@ -79,7 +82,7 @@ test.describe('path bar', () => {
 
     const bar = panel!.locator(BAR);
     await expect(bar).toBeVisible();
-    await expect(bar).toHaveText(docPath);
+    await expect(panel!.locator(PATH)).toHaveText(docPath);
 
     const barBox = await bar.boundingBox();
     const contentBox = await content.boundingBox();
@@ -119,5 +122,56 @@ test.describe('path bar', () => {
     await page.contents.uploadContent(PIXEL_PNG_BASE64, 'base64', docPath);
     await openDocument(page, docPath);
     await expectPathBarAbove(page, docName, docPath, '.jp-ImageViewer');
+  });
+
+  test('toggles the prefix and copies the shown path', async ({
+    page,
+    tmpPath
+  }) => {
+    await page
+      .context()
+      .grantPermissions(['clipboard-read', 'clipboard-write']);
+
+    const docName = 'pathbar_copy.txt';
+    const docPath = `${tmpPath}/${docName}`;
+    await page.contents.uploadContent('copy me\n', 'text', docPath);
+    await openDocument(page, docPath);
+
+    const panel = await page.activity.getPanelLocator(docName);
+    expect(panel).not.toBeNull();
+
+    const prefix = panel!.locator(PREFIX);
+    const copy = panel!.locator(COPY);
+
+    // The copy button leads the bar, before the prefix and path.
+    const copyBox = await copy.boundingBox();
+    const pathBox = await panel!.locator(PATH).boundingBox();
+    expect(copyBox).not.toBeNull();
+    expect(pathBox).not.toBeNull();
+    expect(copyBox!.x).toBeLessThan(pathBox!.x);
+
+    // Collapsed by default: the button copies the relative path.
+    await expect(prefix).toHaveText('.../');
+    await expect(prefix).toHaveAttribute('title', 'Show full path');
+    await expect(copy).toHaveAttribute('title', 'Copy relative path');
+    await copy.click();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+      docPath
+    );
+
+    // Expanding reveals the fully qualified prefix; the button now copies it.
+    await prefix.click();
+    await expect(prefix).toHaveAttribute('title', 'Hide full path');
+    const expandedPrefix = (await prefix.textContent()) ?? '';
+    expect(expandedPrefix.startsWith('/')).toBe(true);
+    expect(expandedPrefix.endsWith('/')).toBe(true);
+    // No `~` abbreviation — a real filesystem path.
+    expect(expandedPrefix).not.toContain('~');
+
+    await expect(copy).toHaveAttribute('title', 'Copy absolute path');
+    await copy.click();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+      `${expandedPrefix}${docPath}`
+    );
   });
 });

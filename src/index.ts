@@ -5,17 +5,12 @@ import {
 import { MainAreaWidget } from '@jupyterlab/apputils';
 import { DocumentRegistry, IDocumentWidget } from '@jupyterlab/docregistry';
 import { DisposableDelegate, IDisposable } from '@lumino/disposable';
-import { Widget } from '@lumino/widgets';
+import { PathBar } from './widgets/PathBar';
 
 /**
- * CSS class applied to the path bar widget.
- */
-const PATH_BAR_CLASS = 'jp-jupyterlab-ext-pathbar-bar';
-
-/**
- * A widget extension that inserts a full-width bar showing the document's
- * path directly above the content of any document widget (notebook, text
- * editor, image viewer, CSV, ...).
+ * A widget extension that inserts a full-width {@link PathBar} directly above
+ * the content of any document widget (notebook, text editor, image viewer,
+ * CSV, ...).
  *
  * A single instance is registered against every concrete widget factory
  * (see {@link activate}); each document type derives from `DocumentWidget`
@@ -34,17 +29,7 @@ class PathBarExtension implements DocumentRegistry.IWidgetExtension<
     widget: IDocumentWidget,
     context: DocumentRegistry.IContext<DocumentRegistry.IModel>
   ): IDisposable {
-    const bar = new Widget();
-    bar.addClass(PATH_BAR_CLASS);
-
-    const update = () => {
-      // `context.path` is the full server-relative path; empty for a
-      // not-yet-saved untitled document until the first save.
-      bar.node.textContent = context.path;
-      bar.node.title = context.path;
-    };
-    update();
-    context.pathChanged.connect(update);
+    const bar = new PathBar(context);
 
     // `MainAreaWidget.contentHeader` is a BoxPanel purpose-built for widgets
     // that sit between the toolbar and the content, so the bar lands directly
@@ -57,7 +42,6 @@ class PathBarExtension implements DocumentRegistry.IWidgetExtension<
     }
 
     return new DisposableDelegate(() => {
-      context.pathChanged.disconnect(update);
       bar.dispose();
     });
   }

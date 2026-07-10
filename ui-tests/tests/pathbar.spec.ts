@@ -6,13 +6,14 @@ import { expect, IJupyterLabPageFixture, test } from '@jupyterlab/galata';
  * These mirror the manual checks used while debugging: open a document of each
  * supported type and assert a single path bar is inserted above the content,
  * shows the document's path, and has a real (non-collapsed) height.
+ *
+ * Fixtures are created inside the per-test `tmpPath` directory (which Galata
+ * cleans up automatically) and opened with the `docmanager:open` command, so
+ * the tests don't depend on file-browser navigation reflecting server-side
+ * uploads.
  */
 
 const BAR = '.jp-jupyterlab-ext-pathbar-bar';
-
-const TEXT_PATH = 'pathbar_hello.txt';
-const NOTEBOOK_PATH = 'pathbar_demo.ipynb';
-const IMAGE_PATH = 'pathbar_pixel.png';
 
 const NOTEBOOK_CONTENT = JSON.stringify({
   cells: [
@@ -34,35 +35,51 @@ const PIXEL_PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk' +
   '+M8AAAMBAQDJ/pdaAAAAAElFTkSuQmCC';
 
-const FIXTURES = [TEXT_PATH, NOTEBOOK_PATH, IMAGE_PATH];
-
 test.describe('path bar', () => {
-  test.afterEach(async ({ page }) => {
-    for (const filePath of FIXTURES) {
-      if (await page.contents.fileExists(filePath)) {
-        await page.contents.deleteFile(filePath);
-      }
-    }
-  });
+  /**
+   * Open a server document by its path using the `docmanager:open` command.
+   */
+  async function openDocument(
+    page: IJupyterLabPageFixture,
+    docPath: string
+  ): Promise<void> {
+    await page.evaluate(async path => {
+      const app = (
+        window as unknown as {
+          jupyterapp: {
+            commands: {
+              execute(
+                id: string,
+                args: Record<string, unknown>
+              ): Promise<unknown>;
+            };
+          };
+        }
+      ).jupyterapp;
+      await app.commands.execute('docmanager:open', { path });
+    }, docPath);
+  }
 
   /**
-   * Assert the path bar of the current document panel is visible, above the
-   * content, shows `docPath`, and is tall enough to display its text.
+   * Assert the path bar of the document panel named `docName` is visible, above
+   * the content, shows `docPath`, and is tall enough to display its text.
    */
   async function expectPathBarAbove(
     page: IJupyterLabPageFixture,
+    docName: string,
     docPath: string,
     contentSelector: string
   ): Promise<void> {
-    const panel = await page.activity.getPanelLocator();
+    const panel = await page.activity.getPanelLocator(docName);
     expect(panel).not.toBeNull();
+
+    // Wait for the document content to render before measuring.
+    const content = panel!.locator(contentSelector);
+    await expect(content).toBeVisible();
 
     const bar = panel!.locator(BAR);
     await expect(bar).toBeVisible();
     await expect(bar).toHaveText(docPath);
-
-    const content = panel!.locator(contentSelector);
-    await expect(content).toBeVisible();
 
     const barBox = await bar.boundingBox();
     const contentBox = await content.boundingBox();
@@ -76,25 +93,31 @@ test.describe('path bar', () => {
     expect(barBox!.y + barBox!.height).toBeLessThanOrEqual(contentBox!.y + 1);
   }
 
-  test('shows the path above a text document', async ({ page }) => {
+  test('shows the path above a text document', async ({ page, tmpPath }) => {
+    const docName = 'pathbar_hello.txt';
+    const docPath = `${tmpPath}/${docName}`;
     await page.contents.uploadContent(
       'Hello from the path bar demo.\n',
       'text',
-      TEXT_PATH
+      docPath
     );
-    await page.filebrowser.open(TEXT_PATH);
-    await expectPathBarAbove(page, TEXT_PATH, '.jp-FileEditor');
+    await openDocument(page, docPath);
+    await expectPathBarAbove(page, docName, docPath, '.jp-FileEditor');
   });
 
-  test('shows the path above a notebook', async ({ page }) => {
-    await page.contents.uploadContent(NOTEBOOK_CONTENT, 'text', NOTEBOOK_PATH);
-    await page.filebrowser.open(NOTEBOOK_PATH);
-    await expectPathBarAbove(page, NOTEBOOK_PATH, '.jp-Notebook');
+  test('shows the path above a notebook', async ({ page, tmpPath }) => {
+    const docName = 'pathbar_demo.ipynb';
+    const docPath = `${tmpPath}/${docName}`;
+    await page.contents.uploadContent(NOTEBOOK_CONTENT, 'text', docPath);
+    await openDocument(page, docPath);
+    await expectPathBarAbove(page, docName, docPath, '.jp-Notebook');
   });
 
-  test('shows the path above an image', async ({ page }) => {
-    await page.contents.uploadContent(PIXEL_PNG_BASE64, 'base64', IMAGE_PATH);
-    await page.filebrowser.open(IMAGE_PATH);
-    await expectPathBarAbove(page, IMAGE_PATH, '.jp-ImageViewer');
+  test('shows the path above an image', async ({ page, tmpPath }) => {
+    const docName = 'pathbar_pixel.png';
+    const docPath = `${tmpPath}/${docName}`;
+    await page.contents.uploadContent(PIXEL_PNG_BASE64, 'base64', docPath);
+    await openDocument(page, docPath);
+    await expectPathBarAbove(page, docName, docPath, '.jp-ImageViewer');
   });
 });

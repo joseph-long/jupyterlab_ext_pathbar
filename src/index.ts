@@ -21,13 +21,10 @@ const PATH_BAR_CLASS = 'jp-jupyterlab-ext-pathbar-bar';
  * (see {@link activate}); each document type derives from `DocumentWidget`
  * (a `MainAreaWidget`) and exposes a `context` carrying `path` / `pathChanged`.
  */
-class PathBarExtension
-  implements
-    DocumentRegistry.IWidgetExtension<
-      IDocumentWidget,
-      DocumentRegistry.IModel
-    >
-{
+class PathBarExtension implements DocumentRegistry.IWidgetExtension<
+  IDocumentWidget,
+  DocumentRegistry.IModel
+> {
   /**
    * Create a path bar for a newly opened document widget.
    * @param widget - The document widget being created.
@@ -87,11 +84,7 @@ function activate(app: JupyterFrontEnd): void {
 
   // Cover widget factories contributed later by other extensions.
   docRegistry.changed.connect((_, args) => {
-    if (
-      args.type === 'widgetFactory' &&
-      args.change === 'added' &&
-      args.name
-    ) {
+    if (args.type === 'widgetFactory' && args.change === 'added' && args.name) {
       docRegistry.addWidgetExtension(args.name, extension);
     }
   });

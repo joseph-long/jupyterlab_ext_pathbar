@@ -93,11 +93,7 @@ test.describe('path bar', () => {
   });
 
   test('shows the path above an image', async ({ page }) => {
-    await page.contents.uploadContent(
-      PIXEL_PNG_BASE64,
-      'base64',
-      IMAGE_PATH
-    );
+    await page.contents.uploadContent(PIXEL_PNG_BASE64, 'base64', IMAGE_PATH);
     await page.filebrowser.open(IMAGE_PATH);
     await expectPathBarAbove(page, IMAGE_PATH, '.jp-ImageViewer');
   });

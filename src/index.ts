@@ -2,18 +2,24 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
+import { MainAreaWidget } from '@jupyterlab/apputils';
 import { DocumentRegistry, IDocumentWidget } from '@jupyterlab/docregistry';
 import { DisposableDelegate, IDisposable } from '@lumino/disposable';
-import { BoxLayout, Widget } from '@lumino/widgets';
+import { Widget } from '@lumino/widgets';
+
+/**
+ * CSS class applied to the path bar widget.
+ */
+const PATH_BAR_CLASS = 'jp-jupyterlab-ext-pathbar-bar';
 
 /**
  * A widget extension that inserts a full-width bar showing the document's
  * path directly above the content of any document widget (notebook, text
  * editor, image viewer, CSV, ...).
  *
- * It is registered against the `'*'` factory, so a single implementation
- * covers every document type: they all derive from `DocumentWidget` and
- * expose a `context` carrying `path` / `pathChanged`.
+ * A single instance is registered against every concrete widget factory
+ * (see {@link activate}); each document type derives from `DocumentWidget`
+ * (a `MainAreaWidget`) and exposes a `context` carrying `path` / `pathChanged`.
  */
 class PathBarExtension
   implements
@@ -22,12 +28,17 @@ class PathBarExtension
       DocumentRegistry.IModel
     >
 {
+  /**
+   * Create a path bar for a newly opened document widget.
+   * @param widget - The document widget being created.
+   * @param context - The document context (source of the path).
+   */
   createNew(
     widget: IDocumentWidget,
     context: DocumentRegistry.IContext<DocumentRegistry.IModel>
   ): IDisposable {
     const bar = new Widget();
-    bar.addClass('jp-PathBar');
+    bar.addClass(PATH_BAR_CLASS);
 
     const update = () => {
       // `context.path` is the full server-relative path; empty for a
@@ -38,17 +49,52 @@ class PathBarExtension
     update();
     context.pathChanged.connect(update);
 
-    // The DocumentWidget lays out [toolbar, content] in a BoxLayout.
-    // Insert the bar at index 1 so it sits between them.
-    const layout = widget.layout as BoxLayout;
-    layout.insertWidget(1, bar);
-    BoxLayout.setStretch(bar, 0);
+    // `MainAreaWidget.contentHeader` is a BoxPanel purpose-built for widgets
+    // that sit between the toolbar and the content, so the bar lands directly
+    // above the editor/viewer without any layout-index assumptions.
+    if (widget instanceof MainAreaWidget) {
+      widget.contentHeader.addWidget(bar);
+    } else {
+      // No known place to attach the bar; drop it rather than leak the node.
+      bar.dispose();
+    }
 
     return new DisposableDelegate(() => {
       context.pathChanged.disconnect(update);
       bar.dispose();
     });
   }
+}
+
+/**
+ * Register the path bar extension against every widget factory currently
+ * known to the registry, and against any factory registered afterwards.
+ *
+ * The document registry has no `'*'` wildcard for widget extensions: they are
+ * stored and looked up per concrete (lowercased) factory name, so a single
+ * `addWidgetExtension('*', ...)` call would never run. Registering per factory
+ * is the supported way to cover all document types.
+ *
+ * @param app - JupyterLab application instance.
+ */
+function activate(app: JupyterFrontEnd): void {
+  const { docRegistry } = app;
+  const extension = new PathBarExtension();
+
+  for (const factory of docRegistry.widgetFactories()) {
+    docRegistry.addWidgetExtension(factory.name, extension);
+  }
+
+  // Cover widget factories contributed later by other extensions.
+  docRegistry.changed.connect((_, args) => {
+    if (
+      args.type === 'widgetFactory' &&
+      args.change === 'added' &&
+      args.name
+    ) {
+      docRegistry.addWidgetExtension(args.name, extension);
+    }
+  });
 }
 
 /**
@@ -59,10 +105,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
   description:
     'Extension to JupyterLab that displays the path to a document above the content editor/viewer.',
   autoStart: true,
-  activate: (app: JupyterFrontEnd) => {
-    app.docRegistry.addWidgetExtension('*', new PathBarExtension());
-    console.log('JupyterLab extension jupyterlab_ext_pathbar is activated!');
-  }
+  activate
 };
 
 export default plugin;

@@ -4,9 +4,17 @@
     https://jupyterlab.readthedocs.io/en/stable/developer/css.html
 */
 
-.jp-PathBar {
-  flex: 0 0 auto;
-  padding: 2px 8px;
+.jp-jupyterlab-ext-pathbar-bar {
+  /*
+   * The bar lives in a MainAreaWidget contentHeader, a Lumino BoxPanel that
+   * sizes its children from the node's computed min/max limits rather than CSS
+   * flexbox. Without an explicit min-height the bar collapses to a few pixels,
+   * so set one (padding + a line of text) via box-sizing.
+   */
+  box-sizing: border-box;
+  min-height: 24px;
+  padding: 4px 8px;
+  line-height: 16px;
   font-size: var(--jp-ui-font-size0);
   color: var(--jp-ui-font-color2);
   background: var(--jp-layout-color1);

@@ -1,21 +1,19 @@
 import { expect, test } from '@jupyterlab/galata';
 
-/**
- * Don't load JupyterLab webpage before running the tests.
- * This is required to ensure we capture all log messages.
- */
-test.use({ autoGoto: false });
+const PLUGIN_ID = 'jupyterlab_ext_pathbar:plugin';
 
-test('should emit an activation console message', async ({ page }) => {
-  const logs: string[] = [];
+test('should activate the path bar plugin', async ({ page }) => {
+  // The plugin no longer logs on activation (per the coding guidelines), so
+  // check activation directly against the JupyterLab application, which Galata
+  // exposes on the page as `window.jupyterapp`.
+  const activated = await page.evaluate(pluginId => {
+    const app = (
+      window as unknown as {
+        jupyterapp: { isPluginActivated(id: string): boolean };
+      }
+    ).jupyterapp;
+    return app.isPluginActivated(pluginId);
+  }, PLUGIN_ID);
 
-  page.on('console', message => {
-    logs.push(message.text());
-  });
-
-  await page.goto();
-
-  expect(
-    logs.filter(s => s === 'JupyterLab extension jupyterlab_ext_pathbar is activated!')
-  ).toHaveLength(1);
+  expect(activated).toBe(true);
 });
